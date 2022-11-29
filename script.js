@@ -1,13 +1,3 @@
-/* 
-create  factories and modules for Gamboard, Game Control, Display Control,
-and players
-
-Gameboard - 1 
-Game - 1
-Display control - 1
-players - 2
-*/
-
 const PlayerFactory = (marker) => {
 	const play = (marker) => {
 		/* make a move */
@@ -45,13 +35,39 @@ const Game = (() => {
 })();
 
 const DisplayControl = (() => {
+	const gameSpace = document.querySelector(".content");
+	const gameBoard = document.createElement("div");
+	createBoard();
+
 	const placeMarker = (marker, i, j) => {
-		/* place maker logic */
+		/* 
+			place maker logic will need to add data index to 
+			rows and cells
+		*/
 	};
 
 	const clearBoard = () => {};
 
-	const createBoard = () => {};
+	function createBoard() {
+		gameBoard.classList.add(["game-board"]);
+		const rows = createNElements(3, "div", ["row"]);
+		rows.forEach((row) => {
+			const cells = createNElements(3, "div", ["cell"]);
+			cells.forEach((cell) => row.appendChild(cell));
+			gameBoard.appendChild(row);
+		});
+		gameSpace.appendChild(gameBoard);
+	}
 
-	return { placeMarker, clearBoard, createBoard };
+	function createNElements(n, element, classes) {
+		const result = [];
+		for (let i = 0; i < n; i++) {
+			const el = document.createElement(element);
+			el.classList.add(classes);
+			result.push(el);
+		}
+		return result;
+	}
+
+	return { placeMarker, clearBoard };
 })();
