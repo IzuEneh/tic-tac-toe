@@ -113,14 +113,22 @@ const Gameboard = (() => {
 
 const Game = ((gameBoard) => {
 	let isStarted = false;
-	let player1 = null;
-	let player2 = null;
+	const players = [];
+	let playerIndex = 0;
+	let winner = null;
 
 	const startGame = (p1Name, p2Name) => {
-		console.log("game is started");
 		isStarted = true;
-		player1 = PlayerFactory(p1Name, "x");
-		player2 = PlayerFactory(p2Name, "O");
+		players.push(PlayerFactory(p1Name, "x"));
+		players.push(PlayerFactory(p2Name, "O"));
+	};
+
+	const restart = () => {
+		isStarted = false;
+		players.pop();
+		players.pop();
+		winner = null;
+		playerIndex = 0;
 	};
 
 	const isValidSpot = (i, j) => {
@@ -129,18 +137,29 @@ const Game = ((gameBoard) => {
 
 	const placeMarker = (i, j) => {
 		if (!isStarted) {
-			console.log("game not started");
 			return;
 		}
-		gameBoard.play(player1.marker, +i, +j);
-		gameBoard.playRandomSpot(player2.marker);
+
+		gameBoard.play(players[playerIndex].marker, +i, +j);
+		playerIndex = (playerIndex + 1) % 2;
 	};
 
 	const isWinner = () => {
 		if (!isStarted) {
 			return;
 		}
-		return gameBoard.checkWinner(player1.marker);
+
+		for (let i = 0; i < players.length; i++) {
+			const player = players[i];
+			if (gameBoard.checkWinner(player.marker)) {
+				winner = player;
+				return true;
+			}
+		}
+	};
+
+	const getWinner = () => {
+		return winner;
 	};
 
 	const isDraw = () => {
@@ -150,9 +169,11 @@ const Game = ((gameBoard) => {
 	return {
 		placeMarker,
 		isWinner,
+		getWinner,
 		isValidSpot,
 		isDraw,
 		startGame,
+		restart,
 	};
 })(Gameboard);
 
@@ -160,19 +181,31 @@ const DisplayControl = ((gameControl, board) => {
 	const gameSpace = document.querySelector(".game-space");
 	const gameBoard = document.createElement("div");
 	const startButton = document.querySelector("#submit");
+	const restartButton = document.querySelector("#restart");
+	const p1Name = document.querySelector("#p1_name");
+	const p2Name = document.querySelector("#p2_name");
+	let isStarted = false;
 	createBoard();
 	startGame();
 
 	function startGame() {
 		startButton.addEventListener("click", (e) => {
-			const p1Name = document.querySelector("#p1_name");
-			const p2Name = document.querySelector("#p2_name");
-
 			if (p1Name.value == "" || p2Name.value == "") {
 				return;
 			}
 			gameControl.startGame(p1Name.value, p2Name.value);
+			isStarted = true;
 			e.preventDefault();
+		});
+
+		restartButton.addEventListener("click", (e) => {
+			if (!isStarted) {
+				return;
+			}
+			gameControl.restart();
+			clearBoard();
+			p1Name.value = "";
+			p2Name.value = "";
 		});
 	}
 
@@ -186,7 +219,8 @@ const DisplayControl = ((gameControl, board) => {
 		redrawBoard();
 
 		if (gameControl.isWinner()) {
-			alert(`player has won the game`);
+			const winner = gameControl.getWinner();
+			console.log(`Congratulations: ${winner.name}, you won`);
 			return;
 		}
 
@@ -196,14 +230,39 @@ const DisplayControl = ((gameControl, board) => {
 	}
 
 	function redrawBoard() {
+		const it = getCells();
+		let result = it.next();
+		while (!result.done) {
+			let cell = result.value;
+			const i = cell.parentNode.dataset.index;
+			const j = cell.dataset.index;
+
+			cell.textContent = board.get(i, j);
+			result = it.next();
+		}
+	}
+
+	function clearBoard() {
+		const it = getCells();
+		let cell = it.next();
+		while (!cell.done) {
+			cell.value.textContent = "";
+			cell = it.next();
+		}
+	}
+
+	function* getCells() {
 		const rows = document.querySelectorAll(".row");
-		rows.forEach((row) => {
-			const rowIndex = row.dataset.index;
-			row.childNodes.forEach((cell) => {
-				const cellIndex = cell.dataset.index;
-				cell.textContent = board.get(rowIndex, cellIndex);
-			});
-		});
+		let iterationsCount = 0;
+		for (let i = 0; i < rows.length; i++) {
+			const row = rows[i];
+			const childNodes = row.childNodes;
+			for (let j = 0; j < childNodes.length; j++) {
+				iterationsCount++;
+				yield childNodes[j];
+			}
+		}
+		return iterationsCount;
 	}
 
 	function createBoard() {
