@@ -1,5 +1,5 @@
-const PlayerFactory = (marker) => {
-	return { marker };
+const PlayerFactory = (name, marker) => {
+	return { name, marker };
 };
 
 const Gameboard = (() => {
@@ -112,12 +112,15 @@ const Gameboard = (() => {
 })();
 
 const Game = ((gameBoard) => {
-	let playerIndex = -1;
-	const playerMarker = PlayerFactory("X");
-	const computeMarker = PlayerFactory("O");
+	let isStarted = false;
+	let player1 = null;
+	let player2 = null;
 
-	const startGame = () => {
-		playerIndex = 0;
+	const startGame = (p1Name, p2Name) => {
+		console.log("game is started");
+		isStarted = true;
+		player1 = PlayerFactory(p1Name, "x");
+		player2 = PlayerFactory(p2Name, "O");
 	};
 
 	const isValidSpot = (i, j) => {
@@ -125,12 +128,19 @@ const Game = ((gameBoard) => {
 	};
 
 	const placeMarker = (i, j) => {
-		gameBoard.play(playerMarker.marker, +i, +j);
-		gameBoard.playRandomSpot(computeMarker.marker);
+		if (!isStarted) {
+			console.log("game not started");
+			return;
+		}
+		gameBoard.play(player1.marker, +i, +j);
+		gameBoard.playRandomSpot(player2.marker);
 	};
 
 	const isWinner = () => {
-		return gameBoard.checkWinner(playerMarker.marker);
+		if (!isStarted) {
+			return;
+		}
+		return gameBoard.checkWinner(player1.marker);
 	};
 
 	const isDraw = () => {
@@ -138,24 +148,37 @@ const Game = ((gameBoard) => {
 	};
 
 	return {
-		startGame,
 		placeMarker,
 		isWinner,
 		isValidSpot,
 		isDraw,
+		startGame,
 	};
 })(Gameboard);
 
 const DisplayControl = ((gameControl, board) => {
 	const gameSpace = document.querySelector(".game-space");
 	const gameBoard = document.createElement("div");
+	const startButton = document.querySelector("#submit");
 	createBoard();
-	gameControl.startGame();
+	startGame();
+
+	function startGame() {
+		startButton.addEventListener("click", (e) => {
+			const p1Name = document.querySelector("#p1_name");
+			const p2Name = document.querySelector("#p2_name");
+
+			if (p1Name.value == "" || p2Name.value == "") {
+				return;
+			}
+			gameControl.startGame(p1Name.value, p2Name.value);
+			e.preventDefault();
+		});
+	}
 
 	function placeMarker(e) {
 		[i, j] = getCoordinates(e);
 		if (!gameControl.isValidSpot(i, j)) {
-			console.log("Can't play there");
 			return;
 		}
 
@@ -178,8 +201,6 @@ const DisplayControl = ((gameControl, board) => {
 			const rowIndex = row.dataset.index;
 			row.childNodes.forEach((cell) => {
 				const cellIndex = cell.dataset.index;
-				// console.log(rowIndex, cellIndex);
-				// console.table(board);
 				cell.textContent = board.get(rowIndex, cellIndex);
 			});
 		});

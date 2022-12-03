@@ -17,14 +17,11 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* justify-content: center; */
-    /* gap */
 }
 
 .game-prompts {
     height: 10%;
     width: 60%;
-    /* background-color: black; */
     text-align: center;
     font-size: 22px;
 }
