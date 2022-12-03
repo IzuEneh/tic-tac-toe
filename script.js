@@ -166,6 +166,10 @@ const Game = ((gameBoard) => {
 		return gameBoard.isDraw();
 	};
 
+	const getCurrentPlayer = () => {
+		return players[playerIndex];
+	};
+
 	return {
 		placeMarker,
 		isWinner,
@@ -174,6 +178,7 @@ const Game = ((gameBoard) => {
 		isDraw,
 		startGame,
 		restart,
+		getCurrentPlayer,
 	};
 })(Gameboard);
 
@@ -184,9 +189,70 @@ const DisplayControl = ((gameControl, board) => {
 	const restartButton = document.querySelector("#restart");
 	const p1Name = document.querySelector("#p1_name");
 	const p2Name = document.querySelector("#p2_name");
+	const p1Container = document.querySelector("#player_1_div");
+	const p2Container = document.querySelector("#player_2_div");
+
 	let isStarted = false;
 	createBoard();
 	startGame();
+
+	function displayCurrentPlayer() {
+		const player = gameControl.getCurrentPlayer();
+
+		if (player.name == p1Name.value) {
+			p2Container.classList.remove("your-turn");
+			const p2Indicator = p2Container.lastElementChild;
+			p2Indicator.textContent = "";
+
+			p1Container.classList.add("your-turn");
+			const indicator = p1Container.lastElementChild;
+			indicator.textContent = "your turn";
+		} else {
+			p1Container.classList.remove("your-turn");
+			const p1Indicator = p1Container.lastElementChild;
+			p1Indicator.textContent = "";
+
+			p2Container.classList.add("your-turn");
+			const indicator = p2Container.lastElementChild;
+			indicator.textContent = "your turn";
+		}
+	}
+
+	function displayWinner() {
+		const winner = gameControl.getWinner();
+
+		if (winner.name == p1Name.value) {
+			p1Container.classList.remove("your-turn");
+			p1Container.classList.add("winner");
+			const p1Indicator = p1Container.lastElementChild;
+			p1Indicator.textContent = "you won!";
+
+			p2Container.classList.add("loser");
+			const indicator = p2Container.lastElementChild;
+			indicator.textContent = "you lost :(";
+		} else {
+			p2Container.classList.remove("your-turn");
+			p2Container.classList.add("winner");
+			const p2Indicator = p2Container.lastElementChild;
+			p2Indicator.textContent = "you won!";
+
+			p1Container.classList.add("loser");
+			const indicator = p1Container.lastElementChild;
+			indicator.textContent = "you lost :(";
+		}
+	}
+
+	function clearWinner() {
+		p1Container.classList.remove("winner");
+		p2Container.classList.remove("loser");
+		const p1Indicator = p1Container.lastElementChild;
+		p1Indicator.textContent = "";
+
+		p1Container.classList.remove("winner");
+		p2Container.classList.remove("loser");
+		const indicator = p2Container.lastElementChild;
+		indicator.textContent = "";
+	}
 
 	function startGame() {
 		startButton.addEventListener("click", (e) => {
@@ -194,6 +260,7 @@ const DisplayControl = ((gameControl, board) => {
 				return;
 			}
 			gameControl.startGame(p1Name.value, p2Name.value);
+			displayCurrentPlayer();
 			isStarted = true;
 			e.preventDefault();
 		});
@@ -206,12 +273,13 @@ const DisplayControl = ((gameControl, board) => {
 			clearBoard();
 			p1Name.value = "";
 			p2Name.value = "";
+			clearWinner();
 		});
 	}
 
 	function placeMarker(e) {
 		[i, j] = getCoordinates(e);
-		if (!gameControl.isValidSpot(i, j)) {
+		if (!gameControl.isValidSpot(i, j) || gameControl.isWinner()) {
 			return;
 		}
 
@@ -219,14 +287,15 @@ const DisplayControl = ((gameControl, board) => {
 		redrawBoard();
 
 		if (gameControl.isWinner()) {
-			const winner = gameControl.getWinner();
-			console.log(`Congratulations: ${winner.name}, you won`);
+			displayWinner();
 			return;
 		}
 
 		if (gameControl.isDraw()) {
 			console.log("no spaces left");
 		}
+
+		displayCurrentPlayer();
 	}
 
 	function redrawBoard() {
