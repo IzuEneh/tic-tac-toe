@@ -1,8 +1,5 @@
-const PlayerFactory = (marker, displayControl) => {
-	const play = (marker) => {
-		/* make a move */
-	};
-	return { play };
+const PlayerFactory = (marker) => {
+	return { marker };
 };
 
 const Gameboard = (() => {
@@ -12,12 +9,30 @@ const Gameboard = (() => {
 		["", "", ""],
 	];
 
+	const validSpots = new Set([
+		[0, 0],
+		[0, 1],
+		[0, 2],
+		[1, 0],
+		[1, 1],
+		[1, 2],
+		[2, 0],
+		[2, 1],
+		[2, 2],
+	]);
+
+	const removeSpot = (i, j) => {
+		validSpots.forEach((spot) => {
+			const [row, col] = spot;
+			if (row == i && col == j) {
+				validSpots.delete(spot);
+			}
+		});
+	};
+
 	const play = (marker, i, j) => {
-		if (board[i][j] != "") {
-			return;
-		}
 		board[i][j] = marker;
-		// console.table(board);
+		removeSpot(i, j);
 	};
 
 	const checkRows = (marker) => {
@@ -67,46 +82,108 @@ const Gameboard = (() => {
 		return checkRows(marker) || checkCols(marker) || checkDiag(marker);
 	};
 
-	return { play, checkWinner };
+	const isDraw = () => {
+		for (let i = 0; i < board.length; i++) {
+			const row = board[i];
+			for (let j = 0; j < row.length; j++) {
+				if (row[j] === "") {
+					return false;
+				}
+			}
+		}
+		return true;
+	};
+
+	const isValidSpot = (i, j) => {
+		return board[i][j] === "";
+	};
+
+	const get = (i, j) => {
+		return board[i][j];
+	};
+
+	const playRandomSpot = (marker) => {
+		const iter = validSpots.values();
+		const [i, j] = iter.next().value;
+		play(marker, i, j);
+	};
+
+	return { play, checkWinner, isValidSpot, isDraw, get, playRandomSpot };
 })();
 
 const Game = ((gameBoard) => {
-	let currentMarker = "X";
-	const checkWinner = (marker) => {
-		/* check for winner logic */
+	let playerIndex = -1;
+	const playerMarker = PlayerFactory("X");
+	const computeMarker = PlayerFactory("O");
+
+	const startGame = () => {
+		playerIndex = 0;
 	};
 
-	const restart = (gameboard) => {
-		/* Restart game logic */
-	};
-
-	const getCurrentMarker = () => {
-		return currentMarker;
+	const isValidSpot = (i, j) => {
+		return gameBoard.isValidSpot(i, j);
 	};
 
 	const placeMarker = (i, j) => {
-		gameBoard.play(currentMarker, i, j);
-		isWinner = gameBoard.checkWinner(currentMarker);
-		if (isWinner) {
-			console.log(currentMarker + " IS the winner");
-		}
+		gameBoard.play(playerMarker.marker, +i, +j);
+		gameBoard.playRandomSpot(computeMarker.marker);
 	};
 
-	return { checkWinner, restart, getCurrentMarker, placeMarker };
+	const isWinner = () => {
+		return gameBoard.checkWinner(playerMarker.marker);
+	};
+
+	const isDraw = () => {
+		return gameBoard.isDraw();
+	};
+
+	return {
+		startGame,
+		placeMarker,
+		isWinner,
+		isValidSpot,
+		isDraw,
+	};
 })(Gameboard);
 
-const DisplayControl = ((gameControl) => {
-	const gameSpace = document.querySelector(".content");
+const DisplayControl = ((gameControl, board) => {
+	const gameSpace = document.querySelector(".game-space");
 	const gameBoard = document.createElement("div");
 	createBoard();
+	gameControl.startGame();
 
 	function placeMarker(e) {
 		[i, j] = getCoordinates(e);
+		if (!gameControl.isValidSpot(i, j)) {
+			console.log("Can't play there");
+			return;
+		}
+
 		gameControl.placeMarker(i, j);
-		e.target.textContent = gameControl.getCurrentMarker();
+		redrawBoard();
+
+		if (gameControl.isWinner()) {
+			alert(`player has won the game`);
+			return;
+		}
+
+		if (gameControl.isDraw()) {
+			console.log("no spaces left");
+		}
 	}
 
-	const clearBoard = () => {};
+	function redrawBoard() {
+		const rows = document.querySelectorAll(".row");
+		rows.forEach((row) => {
+			const rowIndex = row.dataset.index;
+			row.childNodes.forEach((cell) => {
+				const cellIndex = cell.dataset.index;
+				// console.log(rowIndex, cellIndex);
+				// console.table(board);
+				cell.textContent = board.get(rowIndex, cellIndex);
+			});
+		});
+	}
 
 	function createBoard() {
 		gameBoard.classList.add(["game-board"]);
@@ -139,5 +216,5 @@ const DisplayControl = ((gameControl) => {
 		return [row.dataset.index, cell.dataset.index];
 	}
 
-	return { clearBoard };
-})(Game);
+	return {};
+})(Game, Gameboard);
